@@ -48,29 +48,43 @@ class StringTrie:
 def main(input_file):
     t = StringTrie()
     for l in input_file:
-        t.add(l)
+        t.add(l.strip())
 
+    # Find the subtrie that represents the "majority" at each step.
     current = t
     while current.count > 1:
-        click.echo(current)
-        click.echo(current.children)
+        click.echo(f"{current} --> {current.children}")
         if current['0'].count > current['1'].count:
             current = current['0']
         else:
             current = current['1']
         # click.prompt("")
+    # Go to the terminal node in this subtrie.
+    while current.children:
+        click.echo(f"{current} --> {current.children}")
+        if '0' in current.children:
+            current = current.children['0']
+        else:
+            current = current.children['1']
     ogen = int(str(current.path), 2)
     click.echo(f"{current.path} --> {ogen}")
 
+    # Find the subtrie that represents the "minority" at each step.
     current = t
     while current.count > 1:
-        click.echo(current)
-        click.echo(current.children)
+        click.echo(f"{current} --> {current.children}")
         if current['0'].count > current['1'].count:
             current = current['1']
         else:
             current = current['0']
         # click.prompt("")
+    # Go to the terminal node in this subtrie.
+    while current.children:
+        click.echo(f"{current} --> {current.children}")
+        if '0' in current.children:
+            current = current.children['0']
+        else:
+            current = current.children['1']
     co2 = int(str(current.path), 2)
     click.echo(f"{current.path} --> {co2}")
 
