@@ -13,9 +13,20 @@ class Interval:
 
     @property
     def points(self):
-        for i in range(self.x1, self.x2 + 1):
+        if self.y1 == self.y2:
+            for i in range(self.x1, self.x2 + 1):
+                yield i, self.y1
+            return
+
+        if self.x1 == self.x2:
             for j in range(self.y1, self.y2 + 1):
-                yield i, j
+                yield self.x1, j
+            return
+
+        steps = self.y2 - self.y1
+        direction = -1 if steps < 0 else 1
+        for i in range(steps * direction + 1):
+            yield self.x1 + i, self.y1 + i * direction
 
 
 @click.command()
@@ -34,8 +45,9 @@ def main(input_file):
             if x2 < x1:
                 x1, x2 = x2, x1
         else:
-            # Diagonal line; skip
-            continue
+            # Diagonal line; sort by x
+            if x2 < x1:
+                x1, y1, x2, y2 = x2, y2, x1, y1
 
         i = Interval(x1, y1, x2, y2)
         ints.append(i)
