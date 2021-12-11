@@ -75,13 +75,22 @@ def main(input_file):
     for i, l in enumerate(input_file):
         grid[i] = [int(x) for x in l.strip()]
 
-    for i in range(100):
-        flashes = simulate_step(grid)
-        result += flashes
-        click.echo(f"Step {i}: {flashes} => {result}")
-        # click.confirm("?")
+    # for i in range(100):
+    #     flashes = simulate_step(grid)
+    #     result += flashes
+    #     click.echo(f"Step {i}: {flashes} => {result}")
+    #     # click.confirm("?")
+    #
+    # click.secho(f"Answer after 100 steps is {result}", fg="green")
 
-    click.secho(f"Answer is {result}", fg="green")
+    i = 1
+    while True:
+        flashes = simulate_step(grid)
+        click.echo(f"Step {i}: {flashes}")
+        if flashes == 100:
+            click.secho(f"Answer found! Exiting.", fg="green")
+            break
+        i += 1
 
 
 if __name__ == "__main__":
