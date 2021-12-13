@@ -6,9 +6,9 @@ from collections import defaultdict
 def print_grid(grid, M, N):
     lines = []
     result = 0
-    for i in range(M + 1):
+    for i in range(M):
         l = ""
-        for j in range(N + 1):
+        for j in range(N):
             if i in grid and j in grid[i]:
                 l += "#"
                 result += 1
@@ -35,6 +35,8 @@ def main(input_file):
         M = max(M, y)
         N = max(N, x)
 
+    M += 1
+    N += 1
     print_grid(grid, M, N)
 
     folds = []
@@ -45,18 +47,17 @@ def main(input_file):
 
     for axis, number in folds:
         if axis == "y":
-            for y in range(number):
-                for x in list(grid[M - y].keys()):
-                    if y > N:
-                        continue
-                    grid[y][x] = True
-            M = number - 1
+            for y in [i for i in grid.keys() if i > number]:
+                # click.echo(f"Looking at Row {y}")
+                for x in [i for i in grid[y].keys() if i < N]:
+                    # click.echo(f"Looking at Row {y}")
+                    grid[number - (y - number)][x] = True
+            M = number
         elif axis == "x":
-            for y in range(M + 1):
-                for x in list(grid[y].keys()):
-                    if x > number:
-                        grid[y][N - x] = True
-            N = number - 1
+            for y in list(grid.keys()):
+                for x in [i for i in grid[y].keys() if i > number]:
+                    grid[y][number - (x - number)] = True
+            N = number
         print_grid(grid, M, N)
 
     # click.secho(f"Answer found: {result}! Exiting.", fg="green")
