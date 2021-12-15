@@ -63,7 +63,7 @@ def vertex_sift_down(pq, heaplen, i):
             break
 
         # Swap current and child nodes.
-        # click.echo(f"Swap down: {pq[l]} <--> {pq[current]}")
+        # # click.echo(f"Swap down: {pq[l]} <--> {pq[current]}")
         vertex_swap(pq, current, child)
 
         # Iterate downwards.
@@ -108,11 +108,18 @@ def main(input_file):
     for i, l in enumerate(input_file):
         for j, val in enumerate(l.strip()):
             risk[(i, j)] = int(val)
-    # click.echo(str(risk))
-    # click.confirm("?")
 
-    M = N = i + 1
+    M = N = (i + 1) * 5
     DESTINATION = (M - 1, N - 1)
+
+    # Expand the map...
+    for i in range(M):
+        for j in range(N):
+            risk_increase = (i // 10) + (j // 10)
+            original_risk = risk[i % 10, j % 10]
+            risk[i, j] = (original_risk + risk_increase)
+            if risk[i, j] > 9:
+                risk[i, j] -= 9
 
     vertices = {(i, j): Vertex(sys.maxsize, (i, j), 0) for i in range(M) for j in range(N)}
     vertices[0, 0].distance = 0
@@ -125,12 +132,12 @@ def main(input_file):
 
     heaplen = len(pq)
     unseen = {(i, j) for i in range(M) for j in range(N)}
-    click.echo(f"Starting with {len(unseen)} unseen vertices...")
+    # click.echo(f"Starting with {len(unseen)} unseen vertices...")
 
     while unseen:
         n, heaplen = vertex_pop(pq, heaplen)
-        click.echo(f"Removed element {n.position} (distance: {n.distance}) from the queue; heaplen={heaplen}")
-        click.echo(f"New min is: {pq[0]}")
+        # click.echo(f"Removed element {n.position} (distance: {n.distance}) from the queue; heaplen={heaplen}")
+        # click.echo(f"New min is: {pq[0]}")
 
         unseen.remove(n.position)
         if n == DESTINATION:
@@ -140,11 +147,11 @@ def main(input_file):
             if (x, y) not in unseen:
                 continue
 
-            click.echo(f"{x, y} is an unseen neighbor of {n.position}")
+            # click.echo(f"{x, y} is an unseen neighbor of {n.position}")
             candidate = vertices[x, y]
             alt = n.distance + risk[x, y]
             if alt < candidate.distance:
-                click.echo(f"{candidate.position} has a shorter path thro' {n.position}")
+                # click.echo(f"{candidate.position} has a shorter path thro' {n.position}")
                 candidate.distance = alt
                 vertex_sift_up(pq, candidate.index)
 
