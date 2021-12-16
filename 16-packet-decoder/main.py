@@ -97,7 +97,7 @@ class Packet:
         if self.pid == 2:
             return min(sub.value() for sub in self.subpackets)
         if self.pid == 3:
-            return min(sub.value() for sub in self.subpackets)
+            return max(sub.value() for sub in self.subpackets)
 
         if self.pid == 4:
             return self._value
