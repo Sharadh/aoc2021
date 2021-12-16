@@ -56,12 +56,13 @@ def main(input_file, expand, debug):
     M = N = (i + 1)
 
     if expand:
+        m, n = M, N
         M = N = (i + 1) * 5
         # Expand the map...
         for i in range(M):
             for j in range(N):
-                risk_increase = (i // 10) + (j // 10)
-                original_risk = risk[i % 10, j % 10]
+                risk_increase = (i // m) + (j // m)
+                original_risk = risk[i % m, j % n]
                 risk[i, j] = (original_risk + risk_increase)
                 if risk[i, j] > 9:
                     risk[i, j] -= 9
