@@ -69,7 +69,7 @@ def decode(s):
                 root.subpackets.append(decode(s))
 
     j = s.tell()
-    click.confirm(f" * Parsed {root} from {val[i:j]}")
+    click.echo(f" * Parsed {root} from {val[i:j]}")
     return root
 
 
@@ -79,6 +79,12 @@ class Packet:
     pid: int
 
     subpackets: typing.List["Packet"]
+
+    def __str__(self):
+        return f"v={self.version} ({','.join(str(sub) for sub in self.subpackets)})"
+
+    def version_sum(self):
+        return self.version + sum(sub.version_sum() for sub in self.subpackets)
 
 
 @click.command()
@@ -90,7 +96,7 @@ def main(input_file):
 
     for s in bstrings:
         root = decode(StringIO(s))
-        click.echo(str(root))
+        click.secho(f"{root} has total version sum {root.version_sum()}", fg="yellow")
         click.confirm("Next line?")
 
     result = None
