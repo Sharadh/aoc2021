@@ -111,6 +111,28 @@ class Packet:
             conditional = a.value() == b.value()
         return int(conditional)
 
+    def pretty(self):
+        if self.pid == 0:
+            return "(" + "+".join(sub.pretty() for sub in self.subpackets) + ")"
+        if self.pid == 1:
+            return "(" + "*".join(sub.pretty() for sub in self.subpackets) + ")"
+        if self.pid == 2:
+            return f"min({','.join(sub.pretty() for sub in self.subpackets)})"
+        if self.pid == 3:
+            return f"max({','.join(sub.pretty() for sub in self.subpackets)})"
+
+        if self.pid == 4:
+            return str(self._value)
+
+        a, b = self.subpackets
+        if self.pid == 5:
+            conditional = ">"
+        elif self.pid == 6:
+            conditional = "<"
+        elif self.pid == 7:
+            conditional = "=="
+        return f"({a.pretty()} {conditional} {b.pretty()})"
+
 
 @click.command()
 @click.argument("input_file", type=click.File())
@@ -122,6 +144,7 @@ def main(input_file):
     for s in bstrings:
         root = decode(StringIO(s))
         click.secho(f"{root} has total version sum {root.version_sum()} and value {root.value()}", fg="yellow")
+        click.secho(f"{root.pretty()}", fg="green")
         click.confirm("Next line?")
 
     result = None
