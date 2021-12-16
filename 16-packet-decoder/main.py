@@ -1,5 +1,6 @@
 import typing
 from dataclasses import dataclass
+from functools import reduce
 from io import StringIO
 
 import click
@@ -37,7 +38,7 @@ def decode(s):
 
     version = int(s.read(3), 2)
     pid = int(s.read(3), 2)
-    root = Packet(version, pid, [])
+    root = Packet(version, pid, None, [])
 
     # Parse literal values.
     if root.pid == 4:
@@ -48,13 +49,14 @@ def decode(s):
             number.extend(block)
             if signal == "0":
                 break
-        click.echo(f" * is the number {int(''.join(number), 2)}")
+        root._value = int(''.join(number), 2)
+        click.echo(f" * is the number {root._value}")
         # while True:
         #     if s.read(1) != "0":
         #         break
     else:
         # Parse operators.
-        click.echo(f" * is an operator.")
+        click.echo(f" * is an operator ({root.pid}).")
         length_type = s.read(1)
         if length_type == "0":
             sub_length = int(s.read(15), 2)
@@ -78,6 +80,7 @@ class Packet:
     version: int
     pid: int
 
+    _value: typing.Optional[int]
     subpackets: typing.List["Packet"]
 
     def __str__(self):
@@ -85,6 +88,28 @@ class Packet:
 
     def version_sum(self):
         return self.version + sum(sub.version_sum() for sub in self.subpackets)
+
+    def value(self):
+        if self.pid == 0:
+            return sum(sub.value() for sub in self.subpackets)
+        if self.pid == 1:
+            return reduce(lambda x, y: x * y.value(), self.subpackets, 1)
+        if self.pid == 2:
+            return min(sub.value() for sub in self.subpackets)
+        if self.pid == 3:
+            return min(sub.value() for sub in self.subpackets)
+
+        if self.pid == 4:
+            return self._value
+
+        a, b = self.subpackets
+        if self.pid == 5:
+            conditional = a.value() > b.value()
+        elif self.pid == 6:
+            conditional = a.value() < b.value()
+        elif self.pid == 7:
+            conditional = a.value() == b.value()
+        return int(conditional)
 
 
 @click.command()
@@ -96,7 +121,7 @@ def main(input_file):
 
     for s in bstrings:
         root = decode(StringIO(s))
-        click.secho(f"{root} has total version sum {root.version_sum()}", fg="yellow")
+        click.secho(f"{root} has total version sum {root.version_sum()} and value {root.value()}", fg="yellow")
         click.confirm("Next line?")
 
     result = None
