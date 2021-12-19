@@ -102,6 +102,13 @@ class Pair:
         # Depth First Search: Check our children.
         return any(c.split_step(level + 1) for c in self.children)
 
+    def magnitude(self):
+        if self.is_number:
+            return self.value
+
+        left, right = self.children
+        return 3 * left.magnitude() + 2 * right.magnitude()
+
 
 def encode_pair_tree(p: typing.Optional[Pair], indent: int):
     if p.is_number:
@@ -163,7 +170,7 @@ def add_pairs(a: Pair, b: Pair):
     c.children = [a, b]
     click.echo(f"-> {c}")
     reduce_pair(c)
-    click.confirm(f"=> {c}")
+    click.echo(f"=> {c}")
     return c
 
 
@@ -201,7 +208,7 @@ def main(input_file):
 
     for eg in examples:
         result = reduce(add_pairs, eg)
-        click.secho(f"Answer found: {result}! Exiting.", fg="green")
+        click.secho(f"Answer found! {result} --> {result.magnitude()}", fg="green")
         click.confirm("")
 
 
