@@ -1,0 +1,204 @@
+import typing
+from dataclasses import dataclass, field
+from functools import reduce
+from io import StringIO
+
+import click
+
+
+EXPLODE_TEST_CASES = {
+    "[[[[[9,8],1],2],3],4]": "[[[[0,9],2],3],4]",
+    "[7,[6,[5,[4,[3,2]]]]]": "[7,[6,[5,[7,0]]]]",
+    "[[6,[5,[4,[3,2]]]],1]": "[[6,[5,[7,0]]],3]",
+    "[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]": "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]",
+    "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]": "[[3,[2,[8,0]]],[9,[5,[7,0]]]]",
+}
+
+SPLIT_TEST_CASES = {
+    "[[[[0,7],4],[15,[0,13]]],[1,1]]": "[[[[0,7],4],[[7,8],[0,13]]],[1,1]]",
+    "[[[[0,7],4],[[7,8],[0,13]]],[1,1]]": "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]",
+}
+
+
+@dataclass
+class Pair:
+    value: typing.Optional[int] = None
+    children: typing.List["Pair"] = field(default_factory=list)
+    parent: typing.Optional["Pair"] = None
+
+    @property
+    def is_number(self):
+        return self.value is not None
+
+    def __str__(self):
+        if self.is_number:
+            return str(self.value)
+
+        return "[" + ",".join(str(c) for c in self.children) + "]"
+
+    def __repr__(self):
+        return str(self)
+
+    def left(self):
+        current = self
+        # Go up as long as we are the left child.
+        while current.parent and current == current.parent.children[0]:
+            current = current.parent
+
+        if not current.parent:
+            # Reached the root; no left sibling.
+            return None
+
+        # Move one step left, then keep moving right.
+        current = current.parent.children[0]
+        while not current.is_number:
+            current = current.children[1]
+        return current
+
+    def right(self):
+        current = self
+        # Go up as long as we are the right child.
+        while current.parent and current == current.parent.children[1]:
+            current = current.parent
+
+        if not current.parent:
+            # Reached the root; no right sibling.
+            return None
+
+        # Move one step right, then keep moving left.
+        current = current.parent.children[1]
+        while not current.is_number:
+            current = current.children[0]
+        return current
+
+    def reduce_step(self, level):
+        if self.is_number and self.value > 9:
+            a = self.value // 2
+            b = self.value - a
+            self.value = None
+            self.children = [Pair(a, parent=self), Pair(b, parent=self)]
+            return True
+
+        if level == 4 and not self.is_number:
+            # Explode!
+            left = self.left()
+            if left:
+                left.value += self.children[0].value
+
+            right = self.right()
+            if right:
+                right.value += self.children[1].value
+
+            self.children = []
+            self.value = 0
+            return True
+
+        # Depth First Search: Check our children.
+        return any(c.reduce_step(level + 1) for c in self.children)
+
+
+def encode_pair_tree(p: typing.Optional[Pair], indent: int):
+    if p.is_number:
+        return f"--{p.value}"
+
+    children = [
+        " " * indent + encode_pair_tree(c, indent + 2)
+        for c in p.children
+    ]
+    children = [" " * indent + "|"] + children
+    return "\n".join(children)
+
+
+def parse_line(l: str):
+    # Parse the string character at a time.
+    s = StringIO(l)
+
+    # Create the root.
+    current = result = Pair()
+    assert s.read(1) == "["
+
+    # Iterate until the EOF.
+    c = s.read(1)
+    while c:
+        # If this is a number, read until the "," or "]".
+        num = ""
+        while c.isnumeric():
+            num += c
+            c = s.read(1)
+        if num:
+            current.children.append(Pair(value=int(num), parent=current))
+        if not c:
+            continue
+
+        # We've read the character after the number ended.
+        if c == ",":
+            # Move on.
+            pass
+        elif c == "[":
+            # Start parsing a child.
+            child = Pair(parent=current)
+            current.children.append(child)
+            current = child
+        elif c == "]":
+            # Finish parsing a node.
+            current = current.parent
+
+        # Read the next character.
+        c = s.read(1)
+
+    return result
+
+
+def add_pairs(a: Pair, b: Pair):
+    click.echo(f"\n  {a}\n+ {b}")
+    c = Pair()
+    a.parent = c
+    b.parent = c
+    c.children = [a, b]
+    click.confirm(f"-> {c}")
+    reduce_pair(c)
+    return c
+
+
+def reduce_pair(p: Pair):
+    while p.reduce_step(0):
+        click.confirm(f"-> {p}")
+    click.confirm(f"=> {p}")
+
+
+
+@click.command()
+@click.argument("input_file", type=click.File())
+def main(input_file):
+    result = None
+    examples = []
+    numbers = []
+    for l in input_file:
+        if not l.strip():
+            examples.append(numbers)
+            numbers = []
+        else:
+            p = parse_line(l.strip())
+            # click.confirm(f"Parsed out:\n{p}")
+            numbers.append(p)
+
+    # for ip, expected in EXPLODE_TEST_CASES.items():
+    #     x = parse_line(ip)
+    #     x.reduce_step(0)
+    #     passed = str(x) == expected
+    #     click.echo(f"   {ip}\n-> {x}: {passed}")
+
+    # for ip, expected in SPLIT_TEST_CASES.items():
+    #     x = parse_line(ip)
+    #     x.reduce_step(0)
+    #     passed = str(x) == expected
+    #     click.echo(f"   {ip}\n-> {x}: {passed}")
+
+    for eg in examples:
+        result = reduce(add_pairs, eg)
+        click.secho(f"Answer found: {result}! Exiting.", fg="green")
+        click.confirm("")
+
+
+if __name__ == "__main__":
+    main()
