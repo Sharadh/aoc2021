@@ -73,14 +73,7 @@ class Pair:
             current = current.children[0]
         return current
 
-    def reduce_step(self, level):
-        if self.is_number and self.value > 9:
-            a = self.value // 2
-            b = self.value - a
-            self.value = None
-            self.children = [Pair(a, parent=self), Pair(b, parent=self)]
-            return True
-
+    def explode_step(self, level):
         if level == 4 and not self.is_number:
             # Explode!
             left = self.left()
@@ -96,7 +89,18 @@ class Pair:
             return True
 
         # Depth First Search: Check our children.
-        return any(c.reduce_step(level + 1) for c in self.children)
+        return any(c.explode_step(level + 1) for c in self.children)
+
+    def split_step(self, level):
+        if self.is_number and self.value > 9:
+            a = self.value // 2
+            b = self.value - a
+            self.value = None
+            self.children = [Pair(a, parent=self), Pair(b, parent=self)]
+            return True
+
+        # Depth First Search: Check our children.
+        return any(c.split_step(level + 1) for c in self.children)
 
 
 def encode_pair_tree(p: typing.Optional[Pair], indent: int):
@@ -164,9 +168,8 @@ def add_pairs(a: Pair, b: Pair):
 
 
 def reduce_pair(p: Pair):
-    while p.reduce_step(0):
+    while p.explode_step(0) or p.split_step(0):
         click.echo(f"-> {p}")
-
 
 
 @click.command()
