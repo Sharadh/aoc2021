@@ -20,7 +20,9 @@ SPLIT_TEST_CASES = {
 }
 
 
-@dataclass
+# Do not add tuple eq since we need id matching
+# Tuple eq causes infinite recursion when comparing current to current.parent
+@dataclass(eq=False)
 class Pair:
     value: typing.Optional[int] = None
     children: typing.List["Pair"] = field(default_factory=list)
@@ -155,15 +157,15 @@ def add_pairs(a: Pair, b: Pair):
     a.parent = c
     b.parent = c
     c.children = [a, b]
-    click.confirm(f"-> {c}")
+    click.echo(f"-> {c}")
     reduce_pair(c)
+    click.confirm(f"=> {c}")
     return c
 
 
 def reduce_pair(p: Pair):
     while p.reduce_step(0):
-        click.confirm(f"-> {p}")
-    click.confirm(f"=> {p}")
+        click.echo(f"-> {p}")
 
 
 
