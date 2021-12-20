@@ -78,15 +78,16 @@ def main(input_file, part):
 
     x_start, x_end, y_start, y_end = 0, i + 1, 0, j + 1
     empty = "0"
-    print_grid(grid, x_start, x_end, y_start, y_end, empty)
-    for i in range(2):
+    # print_grid(grid, x_start, x_end, y_start, y_end, empty)
+    for i in range(2 if part == Parts.PART_ONE else 50):
         x_start -= 2
         y_start -= 2
         x_end += 2
         y_end += 2
         grid, empty = enhance(grid, key, x_start, x_end, y_start, y_end, empty)
-        print_grid(grid, x_start, x_end, y_start, y_end, empty)
+        # print_grid(grid, x_start, x_end, y_start, y_end, empty)
 
+    print_grid(grid, x_start, x_end, y_start, y_end, empty)
     click.secho(f"Done!", fg="green")
 
 
