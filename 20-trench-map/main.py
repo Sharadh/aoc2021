@@ -32,17 +32,20 @@ def neighbours(i, j):
             yield i + x, j + y
 
 
-def enhance(grid: typing.Dict[typing.Tuple[int, int], str], key: str, x_start: int, x_end: int, y_start: int, y_end: int):
+def enhance(grid: typing.Dict[typing.Tuple[int, int], str], key: str, x_start: int, x_end: int, y_start: int, y_end: int, empty: str):
     new_grid = {}
     for i in range(x_start, x_end):
         for j in range(y_start, y_end):
-            k = "".join(grid.get((x, y), "0") for x, y in neighbours(i, j))
+            k = "".join(grid.get((x, y), empty) for x, y in neighbours(i, j))
             n = int(k, 2)
             new_grid[i, j] = key[n]
-    return new_grid
+
+    # Empty pixels will be filled with key value of current empty * 9
+    new_empty = key[int(empty * 9, 2)]
+    return new_grid, new_empty
 
 
-def print_grid(grid, x_start, x_end, y_start, y_end):
+def print_grid(grid, x_start, x_end, y_start, y_end, empty):
     lines = []
     result = 0
     for i in range(x_start, x_end):
@@ -56,7 +59,7 @@ def print_grid(grid, x_start, x_end, y_start, y_end):
 
     click.echo("\n".join(lines))
     click.secho(f"{result} pixels switched on in grid {x_end - x_start}x{y_end - y_start}!", fg="green")
-    click.confirm("")
+    click.confirm(f"Empty value is: {empty}")
 
 
 @click.command()
@@ -74,14 +77,15 @@ def main(input_file, part):
             grid[(i, j)] = "1" if c == "#" else "0"
 
     x_start, x_end, y_start, y_end = 0, i + 1, 0, j + 1
-    print_grid(grid, x_start, x_end, y_start, y_end)
+    empty = "0"
+    print_grid(grid, x_start, x_end, y_start, y_end, empty)
     for i in range(2):
         x_start -= 2
         y_start -= 2
         x_end += 2
         y_end += 2
-        grid = enhance(grid, key, x_start, x_end, y_start, y_end)
-        print_grid(grid, x_start, x_end, y_start, y_end)
+        grid, empty = enhance(grid, key, x_start, x_end, y_start, y_end, empty)
+        print_grid(grid, x_start, x_end, y_start, y_end, empty)
 
     click.secho(f"Done!", fg="green")
 
