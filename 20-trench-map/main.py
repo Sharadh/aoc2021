@@ -32,30 +32,30 @@ def neighbours(i, j):
             yield i + x, j + y
 
 
-def enhance(grid: typing.Dict[typing.Tuple[int, int], str], key: str, M: int, N: int):
+def enhance(grid: typing.Dict[typing.Tuple[int, int], str], key: str, x_start: int, x_end: int, y_start: int, y_end: int):
     new_grid = {}
-    for i in range(M):
-        for j in range(N):
+    for i in range(x_start, x_end):
+        for j in range(y_start, y_end):
             k = "".join(grid.get((x, y), "0") for x, y in neighbours(i, j))
             n = int(k, 2)
             new_grid[i, j] = key[n]
     return new_grid
 
 
-def print_grid(grid, M, N):
+def print_grid(grid, x_start, x_end, y_start, y_end):
     lines = []
     result = 0
-    for i in range(M):
+    for i in range(x_start, x_end):
         l = ""
-        for j in range(N):
+        for j in range(y_start, y_end):
             c = grid[i, j]
             if c == "1":
                 result += 1
-            l += c
+            l += "." if c == "0" else "#"
         lines.append(l)
 
     click.echo("\n".join(lines))
-    click.echo(f"{result} pixels switched on!")
+    click.secho(f"{result} pixels switched on in grid {x_end - x_start}x{y_end - y_start}!", fg="green")
     click.confirm("")
 
 
@@ -63,8 +63,6 @@ def print_grid(grid, M, N):
 @click.argument("input_file", type=click.File())
 @click.argument("part", type=click.Choice([Parts.PART_ONE, Parts.PART_TWO]))
 def main(input_file, part):
-    result = None
-
     key = next(input_file).strip().replace("#", "1").replace(".", "0")
     click.echo(key)
     click.confirm(f"{len(key)} pixels.")
@@ -75,13 +73,17 @@ def main(input_file, part):
         for j, c in enumerate(l.strip()):
             grid[(i, j)] = "1" if c == "#" else "0"
 
-    M, N = i, j
-    print_grid(grid, M, N)
+    x_start, x_end, y_start, y_end = 0, i + 1, 0, j + 1
+    print_grid(grid, x_start, x_end, y_start, y_end)
     for i in range(2):
-        grid = enhance(grid, key, M, N)
-        print_grid(grid, M, N)
+        x_start -= 2
+        y_start -= 2
+        x_end += 2
+        y_end += 2
+        grid = enhance(grid, key, x_start, x_end, y_start, y_end)
+        print_grid(grid, x_start, x_end, y_start, y_end)
 
-    click.secho(f"Answer found! {result}", fg="green")
+    click.secho(f"Done!", fg="green")
 
 
 if __name__ == "__main__":
