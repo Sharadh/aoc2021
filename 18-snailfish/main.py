@@ -1,4 +1,5 @@
 import typing
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import reduce
 from io import StringIO
@@ -168,21 +169,27 @@ def add_pairs(a: Pair, b: Pair):
     a.parent = c
     b.parent = c
     c.children = [a, b]
-    click.echo(f"-> {c}")
+    # click.echo(f"-> {c}")
     reduce_pair(c)
-    click.echo(f"=> {c}")
+    click.echo(f"=> {c} ({c.magnitude()})")
     return c
 
 
 def reduce_pair(p: Pair):
     while p.explode_step(0) or p.split_step(0):
-        click.echo(f"-> {p}")
+        # click.echo(f"-> {p}")
+        pass
+
+
+class Parts:
+    PART_ONE = "part-one"
+    PART_TWO = "part-two"
 
 
 @click.command()
 @click.argument("input_file", type=click.File())
-def main(input_file):
-    result = None
+@click.argument("part", type=click.Choice([Parts.PART_ONE, Parts.PART_TWO]))
+def main(input_file, part):
     examples = []
     numbers = []
     for l in input_file:
@@ -206,10 +213,32 @@ def main(input_file):
     #     passed = str(x) == expected
     #     click.echo(f"   {ip}\n-> {x}: {passed}")
 
-    for eg in examples:
-        result = reduce(add_pairs, eg)
-        click.secho(f"Answer found! {result} --> {result.magnitude()}", fg="green")
-        click.confirm("")
+    if part == Parts.PART_ONE:
+        click.echo("Part one!")
+        for eg in examples:
+            result = reduce(add_pairs, eg)
+            click.secho(f"Answer found! {result} --> {result.magnitude()}", fg="green")
+            click.confirm("")
+        return
+
+    if part == Parts.PART_TWO:
+        click.echo("Part two!")
+        for eg in examples:
+            all_pairs = [
+                (deepcopy(eg[i]), deepcopy(eg[j]))
+                for i in range(len(eg))
+                for j in range(len(eg))
+                if i != j
+            ]
+            click.echo(f"Found {len(all_pairs)} candidates; evaluating...")
+            click.confirm("")
+            largest = 0
+            for a, b in all_pairs:
+                c = add_pairs(a, b)
+                if c.magnitude() > largest:
+                    largest = c.magnitude()
+            click.secho(f"Answer found! {largest}", fg="green")
+        return
 
 
 if __name__ == "__main__":
