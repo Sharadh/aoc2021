@@ -54,7 +54,7 @@ def dirac_round(p1, p2):
     state["p1"][0][(p1, 0)] = 1
     state["p2"][0][(p2, 0)] = 1
     outcomes = get_dirac_outcomes()
-    click.confirm(f"{outcomes}")
+    click.confirm(f"{outcomes} (total of {sum(outcomes.values())})")
     i, next_player, die = 0, "p1", 0
     wins = {
         "p1": 0, "p2": 0
@@ -80,6 +80,14 @@ def dirac_round(p1, p2):
                     wins[player] += new_count
                 else:
                     new_positions[(new_pos, new_score)] += new_count
+
+        # Also, account for the fact that our turn has caused the other player's
+        # state to be replicated 27 times.
+        other_positions, other_next_player = state[next_player]
+        new_other_positions = Counter()
+        for (pos, score), count in other_positions.items():
+            new_other_positions[(pos, score)] = count * 27
+        state[next_player] = new_other_positions, other_next_player
 
         # If there are no more possibilities to continue, end the game.
         if not new_positions:
