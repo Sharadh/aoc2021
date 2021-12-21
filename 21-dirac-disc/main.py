@@ -72,17 +72,47 @@ def next_player(player):
 
 
 def dirac_round(p1, p2):
+    """Dirac Round
+
+    Every throw of the 3-sided Dirac die splits the universe into 3 possibilities. The key insight
+    here is that despite 27 possible splits every turn:
+        * There are a fewer number possible _sums_, and times they happen (see: `get_dirac_outcomes`)
+        * Many such universes are identical, i.e there are repeating number of the same universes
+
+    Said differently: the only characteristic of every universe is represented in a `DiracState`:
+      * The position and score of player 1
+      * The position and score of player 2
+
+    It's possible to reach the same state in different ways, and the way the game _proceeds_ from that
+    point onwards (i.e: does Player 1 win or Player 2?) is identical.
+
+    Therefore, we keep track of the _counts_ of the different states that could result. Every 3-throw
+    round, we take every possible current state and split it into every possible future state - this is
+    done by multiplying the number of universes with the current state w/ the number of times a die total
+    can occur. (This makes sense because _for each_ of the `count` ways that "universe state" happens, the new
+    state happens `freq` times; adding it all up, the new state can be reached in `count * freq` different
+    universes.)
+
+    Whenever a state has a winner, we add the number of ways that state can occur to the win count for a player.
+    Eventually, we run out of states since someone wins. (To visualize this, the prompt after every round
+    shows the number of different states we track; it increases rapidly, plateaus, and starts reducing.)
+    """
     # This indicates the number of universes that result with various 3-throw die-totals.
     outcomes = get_dirac_outcomes()
     click.confirm(f"{outcomes} (total of {sum(outcomes.values())})")
 
+    # This keeps track of the different universe-states after a round, and number of ways they can happen.
+    # We start with the single universe: the starting state.
     states: typing.Counter[DiracState] = Counter()
     states[DiracState(p1, 0, p2, 0)] += 1
 
-    i, player = 0, "p2"
+    # This keeps track of the players' wins.
     wins = {
         "p1": 0, "p2": 0
     }
+
+    # We start with "p2" being the current player at Round 0 so "p1" gets Round 1
+    i, player = 0, "p2"
     # While there are active states of the game, continue playing.
     while states:
         # Roll the die.
@@ -100,7 +130,6 @@ def dirac_round(p1, p2):
                     new_pos = 10
                 new_score = score + new_pos
                 new_count = count * freq
-                # click.confirm(f"{pos},{score} ({count} times) + {die_total} ({freq} times) -> {new_pos},{new_score} ({new_count} times)")
                 if new_score >= 21:
                     # Count the win, but end the game (don't carry forward)
                     wins[player] += new_count
@@ -114,7 +143,6 @@ def dirac_round(p1, p2):
     click.echo(f"Wins: {wins} (simulated up to {i} throws)")
     winner = "p1" if wins["p1"] > wins["p2"] else "p2"
     click.echo(f"{winner} wins more, in {wins[winner]} universes!")
-    # click.echo(f"Answer: {state[next_player][1] * i}")
 
 
 def roll(die):
