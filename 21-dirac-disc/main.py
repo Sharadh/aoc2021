@@ -1,5 +1,6 @@
 import typing
 from collections import Counter
+from dataclasses import dataclass, replace
 
 import click
 
@@ -49,25 +50,50 @@ def get_dirac_outcomes():
     return c
 
 
+@dataclass(frozen=True)
+class DiracState:
+    p1_pos: int
+    p1_score: int
+    p2_pos: int
+    p2_score: int
+
+    def position(self, player):
+        return getattr(self, f"{player}_pos")
+
+    def score(self, player):
+        return getattr(self, f"{player}_score")
+
+    def copy_with(self, player, pos, score):
+        return replace(self, **{f"{player}_pos": pos, f"{player}_score": score})
+
+
+def next_player(player):
+    return "p1" if player == "p2" else "p2"
+
+
 def dirac_round(p1, p2):
-    state = {"p1": (Counter(), "p2"), "p2": (Counter(), "p1")}
-    state["p1"][0][(p1, 0)] = 1
-    state["p2"][0][(p2, 0)] = 1
+    # This indicates the number of universes that result with various 3-throw die-totals.
     outcomes = get_dirac_outcomes()
     click.confirm(f"{outcomes} (total of {sum(outcomes.values())})")
-    i, next_player, die = 0, "p1", 0
+
+    states: typing.Counter[DiracState] = Counter()
+    states[DiracState(p1, 0, p2, 0)] += 1
+
+    i, player = 0, "p2"
     wins = {
         "p1": 0, "p2": 0
     }
-    while True:
+    # While there are active states of the game, continue playing.
+    while states:
         # Roll the die.
-        i, player = i + 3, next_player
+        player = next_player(player)
 
-        positions, next_player = state[player]
         # Take every possible outcome on top of every possible position
         # calculated thus far; that gives us the new state of the multiverse.
-        new_positions = Counter()
-        for (pos, score), count in positions.items():
+        new_states = Counter()
+        for state, count in states.items():
+            pos = state.position(player)
+            score = state.score(player)
             for die_total, freq in outcomes.items():
                 new_pos = (pos + die_total) % 10
                 if new_pos == 0:
@@ -79,26 +105,15 @@ def dirac_round(p1, p2):
                     # Count the win, but end the game (don't carry forward)
                     wins[player] += new_count
                 else:
-                    new_positions[(new_pos, new_score)] += new_count
+                    new_state = state.copy_with(player, new_pos, new_score)
+                    new_states[new_state] += new_count
 
-        # Also, account for the fact that our turn has caused the other player's
-        # state to be replicated 27 times.
-        other_positions, other_next_player = state[next_player]
-        new_other_positions = Counter()
-        for (pos, score), count in other_positions.items():
-            new_other_positions[(pos, score)] = count * 27
-        state[next_player] = new_other_positions, other_next_player
-
-        # If there are no more possibilities to continue, end the game.
-        if not new_positions:
-            wins[next_player] += sum(state[next_player][0].values())
-            break
-
-        # Store.
-        state[player] = new_positions, next_player
-        click.confirm(f"{player} after {i} throws: {positions} --> {state[player][0]}")
+        click.confirm(f"{player} after {i} throws: {len(states)} --> {len(new_states)}")
+        states = new_states
 
     click.echo(f"Wins: {wins} (simulated up to {i} throws)")
+    winner = "p1" if wins["p1"] > wins["p2"] else "p2"
+    click.echo(f"{winner} wins more, in {wins[winner]} universes!")
     # click.echo(f"Answer: {state[next_player][1] * i}")
 
 
